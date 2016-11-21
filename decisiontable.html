@@ -55,85 +55,247 @@ input[type="text"].focus {
 <script src="build/react-dom.js"></script>
 <script src="build/browser.min.js"></script>
 
+<!--<script src="https://fb.me/react-15.0.0.js"></script>
+<script src="https://fb.me/react-dom-15.0.0.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script> -->
+
 <script src="build/pubsub.js"></script>
 
 </head>
 <body>
-<h3>Decision Table</h3>
+<h3 align="center">Decision Table</h3>
 <div id="decisiontable"></div>
 
+<script type="text/javascript">
+        
+        $(function() {
+        $.contextMenu({
+            selector: '.context-menu-one', 
+            callback: function(key, options) {
+                var m = "clicked: " + key;
+               //window.console && console.log(m) || alert(m);
+
+               PubSub.publish('contextMenuClicked', key);                
+            },
+
+            items: {
+                "add column right": {name: "Add Column Right", icon: "add"},
+                "add cloumn left": {name: "Add Column Left", icon: "add"},
+                "delete column": {name: "Delete Column", icon: "delete"},
+                "sep1": "---------",
+               "add row above": {name: "Add Row Above", icon: "add"},
+                "add row below": {name: "Add Row Below", icon: "add"},
+                "delete row": {name: "Delete Row", icon: "delete"},
+                "sep2": "---------",
+                "quit": {name: "Quit", icon: function(){
+                    return 'context-menu-icon context-menu-icon-quit';
+                }}
+            }
+        });
+
+        
+        });
+    </script>
+
+<!-- <script type="text/babel" src="decisiontable.jsx"></script> -->
 
 <script type="text/babel">
-
-
 	var tempData;
-	var tempCell;
+	var celltype;
+	var selectedRuleIndex;
+	var noOfCondRows;
+	var noOfActRows;
+	var	newRule;
+	var selectedConditionIndex;
 
 	var DecisionTable = React.createClass({
 
 		componentWillMount: function() {
-          var token = PubSub.subscribe( 'addColumnRightClicked', this.addColumnRight );
+          PubSub.subscribe( 'contextMenuClicked', this.handleContextMenu);
 		},
 
-		addColumnRight: function(msg, data) {
-			console.log( "called by PubSub" );
-			console.log("msg : " + msg);
-			//console.log("data : " + data);
+		handleContextMenu: function(msg, todo) {
+			console.log("todo : " + todo);
 
-			tempData = this.state.dtData;
-			tempCell = this.state.currentCell;
-
-			var noOfRules = tempData.rules.length;
-			var celltype = tempCell.celltype;
-			var selectedRuleIndex = tempCell.ruleIndex;
-
-			
-			// check whether last rule or not
-			if (selectedRuleIndex == noOfRules-1) {
-				tempData.rules.push(
-		    		{
-						conditions: [""],
-						actions: [""]
-					}
-				);
+			switch(todo) {
+				case 'add column right':   this.addColumnRight();
+				break;
+				case 'add cloumn left':   this.addColumnLeft();
+				break;
+				case 'delete column':   this.deleteColumn();
+				break;
+				case 'add row above':   this.addRowAbove();
+				break;
+				case 'add row below':   this.addRowBelow();
+				break;
+				case 'delete row':   this.deleteRow();
+				break;
 			}
-			else if(selectedRuleIndex != null){
-				tempData.rules.push(
-		    		{
-						conditions: [""],
-						actions: [""]
-					}
-				);
 
-				// var tempRule = tempData.rules[selectedRuleIndex+1];
-				for (var i = tempData.rules.length-1; i >= selectedRuleIndex+1; i--) {
-					tempData.rules[i] = tempData.rules[i-1];
+		},
+
+		addRowBelow: function() {
+			tempData = this.state.dtData;
+
+			celltype = this.state.currentCell.celltype;
+			selectedConditionIndex = this.state.currentCell.index;
+
+			if (celltype === 'condition' || celltype === 'condName') {
+
+				tempData.names.conditions.splice(selectedConditionIndex+1, 0, "");
+
+				for (var i = 0; i < tempData.rules.length; i++) {
+					tempData.rules[i].conditions.splice(selectedConditionIndex+1, 0, "");
 				}
-
-				tempData.rules[selectedRuleIndex+1] = {	conditions: [""], actions: [""] };
-
 			}
 			else {
 
-				tempData.rules.push(
-		    		{
-						conditions: [""],
-						actions: [""]
-					}
-				);
+				tempData.names.actions.splice(selectedConditionIndex+1, 0, "");
 
-				for (var i = tempData.rules.length-1; i > 0; i--) {
-					tempData.rules[i] = tempData.rules[i-1];
+				for (var i = 0; i < tempData.rules.length; i++) {
+					tempData.rules[i].actions.splice(selectedConditionIndex+1, 0, "");
 				}
-
-				tempData.rules[0] = {	conditions: [""], actions: [""] };
-			}						
+			}
 
 			this.setState({dtData: tempData});
 
+			console.log("======== After Add Row Below ========");
 			console.log(JSON.stringify(this.state.dtData));
 			console.log("=======================================");
+		},
 
+		addRowAbove: function() {
+			tempData = this.state.dtData;
+
+			celltype = this.state.currentCell.celltype;
+			var selectedIndex = this.state.currentCell.index;
+
+			if (celltype === 'condition' || celltype === 'condName') {
+
+				tempData.names.conditions.splice(selectedIndex, 0, "");
+
+				for (var i = 0; i < tempData.rules.length; i++) {
+					tempData.rules[i].conditions.splice(selectedIndex, 0, "");
+				}
+				
+			}
+			else {
+
+				if (selectedIndex == 0) {
+					tempData.names.actions.splice(selectedIndex, 0, "");
+
+					for (var i = 0; i < tempData.rules.length; i++) {
+						tempData.rules[i].actions.splice(selectedIndex, 0, "");
+					}
+				}
+				else {
+					tempData.names.actions.splice(selectedIndex-1, 0, "");
+
+					for (var i = 0; i < tempData.rules.length; i++) {
+						tempData.rules[i].actions.splice(selectedIndex-1, 0, "");
+					}
+				}
+			}
+
+			this.setState({dtData: tempData});
+
+			console.log("======== After Add Row Above ========");
+			console.log(JSON.stringify(this.state.dtData));
+			console.log("=======================================");
+		},
+
+		deleteRow: function() {
+			tempData = this.state.dtData;
+			celltype = this.state.currentCell.celltype;
+			selectedRuleIndex = this.state.currentCell.ruleIndex;
+			var selectedIndex = this.state.currentCell.index;
+
+			if (celltype === 'condName' || celltype === 'condition') {
+				tempData.names.conditions.splice(selectedIndex, 1);
+
+				for (var i = 0; i < tempData.rules.length; i++) {
+					tempData.rules[i].conditions.splice(selectedIndex, 1);
+				}
+			}
+			else {
+				tempData.names.actions.splice(selectedIndex, 1);
+
+				for (var i = 0; i < tempData.rules.length; i++) {
+					tempData.rules[i].actions.splice(selectedIndex, 1);
+				}
+			}
+
+			this.setState({dtData: tempData});
+
+			console.log("======== After Delete Row ========");
+			console.log(JSON.stringify(this.state.dtData));
+			console.log("=======================================");
+		},
+
+		prepareNewColumn: function() {
+
+			tempData = this.state.dtData;
+			celltype = this.state.currentCell.celltype;
+			selectedRuleIndex = this.state.currentCell.ruleIndex;
+
+			noOfCondRows = tempData.names.conditions.length;
+			noOfActRows = tempData.names.actions.length;
+			
+		    newRule = {conditions: [""], actions: [""]};
+
+			var i = newRule.conditions.length;
+			for (; i < noOfCondRows; i++) {
+				newRule.conditions.push("");
+			}
+
+			var j = newRule.actions.length;
+			for (; j < noOfActRows; j++) {
+				newRule.actions.push("");
+			}
+		},
+
+		addColumnRight: function() {
+			//console.log("data : " + data);
+
+			this.prepareNewColumn();
+
+			if (celltype === 'condName' || celltype === 'actionName') {
+				//array.splice(index,howmany,item1,.....,itemX)
+				tempData.rules.splice(0, 0, newRule);
+			}
+			else {
+				tempData.rules.splice(selectedRuleIndex+1, 0, newRule);
+			}
+
+			this.setState({dtData: tempData});
+
+			console.log("======== After Add Column Right ========");
+			console.log(JSON.stringify(this.state.dtData));
+			console.log("========================================");
+
+		},
+
+		addColumnLeft: function() {
+
+			this.prepareNewColumn();
+
+			tempData.rules.splice(selectedRuleIndex, 0, newRule);
+			
+			this.setState({dtData: tempData});
+			console.log("======== After Add Column Left ========");
+			console.log(JSON.stringify(this.state.dtData));
+			console.log("=======================================");
+		},
+
+		deleteColumn: function() {
+			tempData = this.state.dtData;
+			selectedRuleIndex = this.state.currentCell.ruleIndex;
+			tempData.rules.splice(selectedRuleIndex, 1);
+
+			this.setState({dtData: tempData});
+			console.log("========  After Delete Column  ========");
+			console.log(JSON.stringify(this.state.dtData));
+			console.log("=======================================");
 		},
 
 		getInitialState: function() {
@@ -170,25 +332,25 @@ input[type="text"].focus {
 			
 			this.setState({dtData: tempData});
 
+			console.log("========  Change data  ========");
 			console.log(JSON.stringify(this.state.dtData));
 			console.log("=======================================");
 		},
 
 		setCurrentCell: function(celltype, index, ruleIndex) {
 			
-			tempCell = this.state.currentCell;
+			var tempCell = this.state.currentCell;
 
 			tempCell.celltype = celltype;
 			tempCell.index = index;
-			tempCell.ruleIndex = ruleIndex;		
+			tempCell.ruleIndex = ruleIndex;
 			
 			this.setState({currentCell: tempCell});
-
-			console.log(JSON.stringify(this.state.currentCell));
-			console.log("=======================================");
+			
 		},
 
 		render: function() {
+			
 			return (
 				<table>
 					<thead>
@@ -201,7 +363,7 @@ input[type="text"].focus {
 					
 					<DtAction dtActions={this.state.dtData.names.actions} 
 						dtRules={this.state.dtData.rules} callbackParent={this.onChildChanged} 
-						onFocusCell={this.setCurrentCell}/>					
+						onFocusCell={this.setCurrentCell}/>
 				</table>
 			);
 		}
@@ -224,7 +386,6 @@ input[type="text"].focus {
 					<th></th> 
 					{rules}
 				</tr>
-					
 			);
 		}
 	});
@@ -234,7 +395,7 @@ input[type="text"].focus {
 		render: function() {
 			return (
 					<td>
-						<input type="text" className="context-menu-one" value={this.props.value} 
+						<input type="text" className="context-menu-one" value={this.props.value || ''} 
 						onChange={this.onTextChanged} onFocus={this.handleFocus}/>
 					</td>
 				);
@@ -366,41 +527,6 @@ input[type="text"].focus {
 
 	ReactDOM.render(<DecisionTable dtData={response}/>, document.getElementById('decisiontable'));
 </script>
-
-<script type="text/javascript">
-        
-        $(function() {
-        $.contextMenu({
-            selector: '.context-menu-one', 
-            callback: function(key, options) {
-                var m = "clicked: " + key;
-                //window.console && console.log(m) || alert(m);
-
-                switch (key) {
-
-	            	case 'add column right' : PubSub.publish( 'addColumnRightClicked' );
-	            	break;
-	            }
-            },
-
-            items: {
-                "add column right": {name: "Add Column Right", icon: "add"},
-                "add cloumn left": {name: "Add Column Left", icon: "add"},
-                "delete column": {name: "Delete Column", icon: "delete"},
-                "sep1": "---------",
-               "add row above": {name: "Add Row Above", icon: "add"},
-                "add row below": {name: "Add Row Below", icon: "add"},
-                "delete row": {name: "Delete Row", icon: "delete"},
-                "sep2": "---------",
-                "quit": {name: "Quit", icon: function(){
-                    return 'context-menu-icon context-menu-icon-quit';
-                }}
-            }
-        });
-
-        
-        });
-    </script>
     
 </body>
 </html>
