@@ -80,7 +80,7 @@ input[type="text"].focus {
 
             items: {
                 "add column right": {name: "Add Column Right", icon: "add"},
-                "add cloumn left": {name: "Add Column Left", icon: "add"},
+                "add cloumn left": {name: "Add Column Left", icon: "add" },
                 "delete column": {name: "Delete Column", icon: "delete"},
                 "sep1": "---------",
                "add row above": {name: "Add Row Above", icon: "add"},
@@ -89,7 +89,7 @@ input[type="text"].focus {
                 "sep2": "---------",
                 "quit": {name: "Quit", icon: function(){
                     return 'context-menu-icon context-menu-icon-quit';
-                }}
+                }}                
             }
         });
 
@@ -276,6 +276,11 @@ input[type="text"].focus {
 		},
 
 		addColumnLeft: function() {
+
+			if (this.state.currentCell.celltype === 'condName' || this.state.currentCell.celltype === 'actionName') {
+				alert('Cannot add column Left here..');
+				return;
+			}
 
 			this.prepareNewColumn();
 
